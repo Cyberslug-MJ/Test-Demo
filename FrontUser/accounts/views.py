@@ -31,33 +31,44 @@ def login(request):
         return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
     
 
-@api_view(['PUT','PATCH']) #PATCH is for testing purposes 
+@api_view(['GET','PUT','PATCH']) #PATCH is for testing purposes 
 def SchoolProfileManager(request):
     try:
         school_profile = SchoolProfile.objects.get(user_id=request.user.pk)
     except SchoolProfile.DoesNotExist:
         return Response({"message":"Profile does not exist"},status=status.HTTP_404_NOT_FOUND)
     
+    if request.method =='GET':
+        serializer = SchoolProfileSerializer(school_profile)
+        return Response({"data":serializer.data,"is_updatable":school_profile.is_updatable},status=status.HTTP_200_OK)
+    
     if request.method in ['PATCH','PUT']:
         partial = request.method == 'PATCH' # will validate to True if it is 
-    serializer = SchoolProfileSerializer(school_profile,data=request.data,partial=partial)
+    serializer = SchoolProfileSerializer(school_profile,data=request.data,partial=partial,context={"request":request})
     if serializer.is_valid():
         serializer.save()
+        school_profile.is_updatable = False
+        school_profile.save()
         return Response({"message":"Profile updated successfully","data":serializer.data},status=status.HTTP_200_OK)
     else:
         return Response({"error":serializer.errors},status=status.HTTP_400_BAD_REQUEST)
     
 
-@api_view(['PUT','PATCH']) #PATCH is for testing purposes 
-def SchoolProfileManager(request):
+@api_view(['GET','PUT','PATCH']) #PATCH is for testing purposes 
+@permission_classes([AllowAny])
+def ProfileManager(request):
     try:
-        school_profile = SchoolProfile.objects.get(user_id=request.user.pk)
-    except SchoolProfile.DoesNotExist:
-        return Response({"message":"Profile does not exist"},status=status.HTTP_404_NOT_FOUND)
+        user_profile = UserProfile.objects.get(user_id=request.user.pk)
+    except UserProfile.DoesNotExist:
+        return Response({"message":f"Profile does not exist"},status=status.HTTP_404_NOT_FOUND)
+    
+    if request.method =='GET':
+        serializer = UserProfileSerializer(user_profile)
+        return Response({"data":serializer.data},status=status.HTTP_200_OK)
     
     if request.method in ['PATCH','PUT']:
         partial = request.method == 'PATCH' # will validate to True if it is 
-    serializer = SchoolProfileSerializer(school_profile,data=request.data,partial=partial)
+    serializer = UserProfileSerializer(user_profile,data=request.data,partial=partial)
     if serializer.is_valid():
         serializer.save()
         return Response({"message":"Profile updated successfully","data":serializer.data},status=status.HTTP_200_OK)

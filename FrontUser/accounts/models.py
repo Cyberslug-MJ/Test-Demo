@@ -82,7 +82,8 @@ class CustomUser(AbstractBaseUser,PermissionsMixin):
 
 class UserProfile(models.Model):
     user = models.OneToOneField(CustomUser,on_delete=models.CASCADE,primary_key=True,verbose_name='User Profile',related_name='profile')
-    profile_picture = models.ImageField(upload_to='images',blank=True,default='images/profile_pic.webp')
+    profile_picture = models.URLField(default="https://my-bucket.s3.amazonaws.com/my-folder/my-image.jpg?AWSAccessKeyId=EXAMPLE&Expires=1672531199&Signature=abcdef",
+    verbose_name="profile picture",blank=True,max_length=1000)
     firstname = models.CharField(max_length=100,blank=True)
     lastname = models.CharField(max_length=100,blank=True)
     email = models.EmailField(blank=True)
@@ -120,6 +121,7 @@ class SchoolProfile(models.Model):
     theme = models.CharField(max_length=7,blank=True)
     tier = models.CharField(choices=tier_choices,max_length=6,verbose_name="tier",default="Tier 1")
     subdomain_url = models.URLField(blank=True,default='http://www.yourschool.domain.com')
+    is_updatable = models.BooleanField(default=True)
 
     def __str__(self):
         return self.name
