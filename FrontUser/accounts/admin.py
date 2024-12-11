@@ -17,6 +17,7 @@ class CustomUserAdmin(UserAdmin):
         ('Important dates', {'fields': ('last_login', 'date_joined')}),
         ('Roles',{'fields':('role',)}),
         ('School',{'fields':('school_name',)}),
+        ('Approved',{'fields':('approved',)}),
     )
 
     # You can also customize the fields displayed in the add/edit form

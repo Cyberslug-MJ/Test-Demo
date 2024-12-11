@@ -50,6 +50,7 @@ class CustomUser(AbstractBaseUser,PermissionsMixin):
     school_name     =models.CharField(max_length=200,blank=True,db_index=True,unique=True,null=True)
     first_name      =models.CharField(verbose_name='first_name',max_length=200,default='N/A',blank=True)
     last_name       =models.CharField(verbose_name='last_name',max_length=200,default='N/A',blank=True)
+    approved        =models.BooleanField(verbose_name='approved',default=False)
 
 
     USERNAME_FIELD = 'email'
