@@ -47,7 +47,7 @@ class CustomUser(AbstractBaseUser,PermissionsMixin):
     is_staff        =models.BooleanField(default=False)
     role_choices    =(("Admin","Admin"),("Parent","Parent"),("Student","Student"),("Teacher","Teacher"))
     role            =models.CharField(max_length=7,choices=role_choices,db_index=True)
-    school_name     =models.CharField(max_length=200,blank=True,db_index=True,unique=True,null=True)
+    school_name     =models.CharField(max_length=200,blank=True,db_index=True,null=True)
     first_name      =models.CharField(verbose_name='first_name',max_length=200,default='N/A',blank=True)
     last_name       =models.CharField(verbose_name='last_name',max_length=200,default='N/A',blank=True)
     approved        =models.BooleanField(verbose_name='approved',default=False)
@@ -130,7 +130,10 @@ class SchoolProfile(models.Model):
     def save(self, *args, **kwargs):
         name = self.name
         subdomain = slugify(name).replace(" ","-").lower()
-        self.subdomain_url = f"https://www.{subdomain}.domain.com"
+        if subdomain == '':
+            self.subdomain_url = "https://www.subdomained.domain.com"
+        else:
+            self.subdomain_url = f"https://www.{subdomain}.domain.com"
 
         #syncing user data 
         user = self.user

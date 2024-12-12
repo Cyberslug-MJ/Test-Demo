@@ -25,8 +25,14 @@ class Announcements(models.Model):
     def __str__(self):
         return self.title
     
+class subclasses(models.Model):
+    name = models.CharField(max_length=100,unique=True)
+    date_created = models.DateTimeField(auto_now_add=True, verbose_name="date created")
+    last_modified = models.DateTimeField(auto_now=True, verbose_name="last modified")
+    
 class StudentClasses(models.Model):
     name = models.CharField(max_length=50,unique=True)
+    subclasses = models.ForeignKey(subclasses,on_delete=models.CASCADE,verbose_name='subclass')
     created = models.DateField(auto_now_add=True)
     modified = models.DateField(auto_now=True)
 
@@ -89,9 +95,8 @@ class Student(models.Model):
             self.passkey = unique_id
 
         #Student ID generation
-        count = self.fullname.count()
-        formatted_class_name = self.student_class.name.replace(" ","-")
-        self.student_id = f"STU/{formatted_class_name}/000{count}"
+        count = self.fullname
+        self.student_id = f"STU/000{count}"
 
         # Syncing user data
         user = self.user
@@ -171,8 +176,7 @@ class Assessment_records(models.Model):
 
 class Approvals(models.Model):
     user = models.OneToOneField(User,on_delete=models.CASCADE,verbose_name='user',related_name='approvals',null=True)
-    firstname = models.CharField(max_length=100)
-    lastname = models.CharField(max_length=100)
+    fullname = models.CharField(max_length=255,blank=True,default='',verbose_name="fullname")
     email = models.EmailField()
     approved = models.BooleanField()
 
@@ -180,10 +184,11 @@ class Approvals(models.Model):
         verbose_name_plural = 'approvals'
 
     def __str__(self):
-        return f'{self.firstname} {self.lastname}'
+        return self.fullname
     
     def save(self, *args, **kwargs):
         user = self.user
+        self.fullname = f"{user.first_name} {user.last_name}"
         if user.approved != self.approved:
             user.approved = self.approved
             user.save(update_fields=['approved'])

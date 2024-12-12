@@ -2,6 +2,7 @@ from accounts.models import CustomUser as User
 from django.db.models.signals import post_save
 from . models import *
 from django.dispatch import receiver
+from accounts.models import *
 
 @receiver(post_save,sender=User)
 def Creator(sender,created,instance,**kwargs):
@@ -11,28 +12,21 @@ def Creator(sender,created,instance,**kwargs):
         if instance.role == "Parent":
             Guardian.objects.create(
                 user=instance,
-                firstname = instance.first_name,
-                lastname = instance.last_name
             )
         
         if instance.role == "Student":
             Student.objects.create(
                 user=instance,
-                firstname = instance.first_name,
-                lastname = instance.last_name
             )
         
         if instance.role=="Teacher":
             staff.objects.create(
                 user=instance,
-                firstname = instance.first_name,
-                lastname = instance.last_name
             )
             
             Approvals.objects.create(
                 user=instance,
-                firstname = instance.first_name,
-                lastname = instance.last_name,
+                fullname = instance.staff.fullname,
                 email = instance.email,
                 approved = instance.approved
             )
@@ -65,3 +59,4 @@ def Creator(sender,created,instance,**kwargs):
             instance.approvals.email = instance.email
             instance.approvals.approved = instance.approved
             instance.approvals.save()
+            
