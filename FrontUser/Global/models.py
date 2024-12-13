@@ -12,10 +12,16 @@ class Announcements(models.Model):
     ("Students","Students"),
     ("Everyone","Everyone"),
     )
+    LEVEL = (
+        ("HIGH","HIGH"),
+        ("LOW","LOW"),
+        ("MEDIUM","MEDIUM")
+    )
     title = models.CharField(max_length=128)
     body = models.TextField(max_length=150)
     audiences = models.CharField(max_length=8,choices=audience,default="Everyone")
     scheduled_for = models.DateField(default=datetime.datetime.now)
+    priority = models.CharField(max_length=6,choices=LEVEL,verbose_name='priority',default="LOW")
     date_created = models.DateField(auto_now_add=True)
     date_modified = models.DateField(auto_now=True)
 
@@ -24,15 +30,10 @@ class Announcements(models.Model):
     
     def __str__(self):
         return self.title
-    
-class subclasses(models.Model):
-    name = models.CharField(max_length=100,unique=True)
-    date_created = models.DateTimeField(auto_now_add=True, verbose_name="date created")
-    last_modified = models.DateTimeField(auto_now=True, verbose_name="last modified")
-    
+
+
 class StudentClasses(models.Model):
     name = models.CharField(max_length=50,unique=True)
-    subclasses = models.ForeignKey(subclasses,on_delete=models.CASCADE,verbose_name='subclass')
     created = models.DateField(auto_now_add=True)
     modified = models.DateField(auto_now=True)
 
@@ -41,11 +42,21 @@ class StudentClasses(models.Model):
 
     class Meta:
         verbose_name_plural = "student classes"
+    
+
+class subclasses(models.Model):
+    name = models.CharField(max_length=100,unique=True)
+    Grade = models.ForeignKey(StudentClasses,on_delete=models.CASCADE,verbose_name='associated grade',null=True)
+    date_created = models.DateTimeField(auto_now_add=True, verbose_name="date created")
+    last_modified = models.DateTimeField(auto_now=True, verbose_name="last modified")
+
+    def __str__(self):
+        return f"{self.Grade.name}-{self.name}"
 
 
 class subjects(models.Model):
     name = models.CharField(verbose_name='name of subject',max_length=100,unique=True)
-    classes = models.ManyToManyField(StudentClasses,verbose_name="Classes")
+    classes = models.ManyToManyField(subclasses,verbose_name="Classes")
     added = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
 
@@ -64,27 +75,13 @@ class academic(models.Model):
 
     def __str__(self):
         return self.name
-    
-
-class Assessments(models.Model):
-    name = models.CharField(max_length=125,verbose_name='Name of Assessment')
-    use_for_assessment = models.BooleanField(default=False)
-    created = models.DateTimeField(auto_now_add=True)
-    last_modified = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return self.name
-    
-    class Meta:
-        verbose_name_plural = "assessments"
 
 
 class Student(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True, related_name='student')
     fullname = models.CharField(max_length=255,blank=True,default='',verbose_name="fullname")
-    student_class = models.ForeignKey(StudentClasses,on_delete=models.CASCADE,null=True)
-    student_id = models.CharField(max_length=20,blank=True)
-    passkey = models.CharField(max_length=16,unique=True,blank=True)
+    student_class = models.ForeignKey(subclasses,on_delete=models.CASCADE,verbose_name='Student class')
+    passkey = models.CharField(max_length=16,unique=True,blank=True,editable=False)
     last_modified = models.DateTimeField(auto_now=True)
 
     def save(self, *args, **kwargs):
@@ -93,10 +90,6 @@ class Student(models.Model):
         while Student.objects.filter(passkey=self.passkey).exists():
             unique_id = uuid.uuid4().hex[:6]
             self.passkey = unique_id
-
-        #Student ID generation
-        count = self.fullname
-        self.student_id = f"STU/000{count}"
 
         # Syncing user data
         user = self.user
@@ -113,9 +106,8 @@ class Student(models.Model):
 class staff(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True, related_name='staff')
     fullname = models.CharField(max_length=255,blank=True,default='',verbose_name="fullname")
-    teacher_class = models.ManyToManyField(StudentClasses,related_name="teacher_class")
-    subject = models.ForeignKey(subjects,on_delete=models.CASCADE,verbose_name='subject taught',null=True)
-
+    teacher_class = models.ManyToManyField(subclasses,related_name="teacher_class")
+    subject = models.ForeignKey(subjects,on_delete=models.CASCADE,verbose_name='subject taught')
     last_modified = models.DateTimeField(auto_now=True)
 
     def __str__(self):
@@ -133,7 +125,7 @@ class staff(models.Model):
 class Guardian(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True, related_name='parent')
     fullname = models.CharField(max_length=255,blank=True,default='',verbose_name="fullname")
-    wards = models.ManyToManyField(Student,blank=True)
+    wards = models.ManyToManyField(Student)
     last_modified = models.DateTimeField(auto_now=True)
 
     def __str__(self):
@@ -145,25 +137,31 @@ class Guardian(models.Model):
         super(Guardian, self).save(*args, **kwargs)
 
 
+class Standards(models.Model):
+    name = models.CharField(max_length=100,verbose_name='label')
+    greater_than = models.IntegerField(verbose_name="Should be Greater than")
+    less_than = models.IntegerField(verbose_name="Should be Less than")
+
+    def __str__(self):
+        return self.name
+
+
 class Assessment_records(models.Model):
-    tags = (
-        ('Exams','Exams'),
-        ('Class Assessment','Class Assessment')
-    )
-    assessment_tag = models.CharField(max_length=25,verbose_name='Tag',blank=True,choices=tags)
-    assessment = models.ForeignKey(Assessments,on_delete=models.RESTRICT,verbose_name='assessment')
-    student = models.ForeignKey(Student,on_delete=models.RESTRICT,verbose_name='student',null=True)
-    subject = models.ForeignKey(subjects,on_delete=models.RESTRICT,verbose_name="subject",null=True)
-    total_score = models.IntegerField(verbose_name="Total marks",null=True)
-    score = models.IntegerField(verbose_name='score in the assessement')
-    academic_year = models.ForeignKey(academic,on_delete=models.RESTRICT,verbose_name='academic year',null=True,default=academic.is_active==True)
+    student = models.ForeignKey(Student,on_delete=models.RESTRICT,verbose_name='student')
+    subject = models.ForeignKey(subjects,on_delete=models.RESTRICT,verbose_name="subject")
+    exams_score = models.IntegerField(verbose_name="Exams Score")
+    class_score = models.IntegerField(verbose_name="Class Score")
+    total_score = models.IntegerField(verbose_name="Total Score")
+    academic_year = models.ForeignKey(academic,on_delete=models.RESTRICT,verbose_name='academic year',default=academic.is_active==True)
+    grade_relation = models.OneToOneField(Standards,on_delete=models.RESTRICT,verbose_name='grade')
+    grade = models.CharField(max_length=100,blank=True,editable=False)
     created = models.DateTimeField(auto_now_add=True)
     last_modified = models.DateTimeField(auto_now=True)
 
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=['assessment', 'student', 'subject','academic_year'],
+                fields=['student', 'subject','academic_year'],
                 name='Student Must have a unique assessment subject and academic year'
             )
         ]
@@ -171,8 +169,26 @@ class Assessment_records(models.Model):
         verbose_name_plural = "Assessment Records"
 
     def __str__(self):
-        return self.assessment.name
- 
+        return f"{self.student.fullname} - {self.subject.name}"
+
+
+    def save(self, *args, **kwargs):
+    # enforcing the integerfields 
+        if not (0 <= self.class_score <= 100):
+            raise ValueError("Class score must be between 0 and 100.")
+        if not (0 <= self.exams_score <= 100):
+            raise ValueError("Exams score must be between 0 and 100.")
+
+    #calculating the total score
+        self.total_score = self.class_score + self.exams_score
+
+    #Automatic grade calculation
+        if self.grade_relation and self.grade_relation.greater_than < self.total_score < self.grade_relation.less_than:
+            self.grade = self.grade_relation.name
+        else:
+            self.grade = "Undefined" #In case the range does not exist
+        super(Assessment_records, self).save(*args, **kwargs)
+
 
 class Approvals(models.Model):
     user = models.OneToOneField(User,on_delete=models.CASCADE,verbose_name='user',related_name='approvals',null=True)

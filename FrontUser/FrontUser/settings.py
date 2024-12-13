@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 from datetime import timedelta
+import re #regular expressions 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -41,9 +42,11 @@ INSTALLED_APPS = [
     'rest_framework',
     'Global.apps.GlobalConfig',
     'accounts',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -56,6 +59,14 @@ MIDDLEWARE = [
 ROOT_URLCONF = 'FrontUser.urls'
 
 AUTH_USER_MODEL = 'accounts.CustomUser'
+
+#CORS_ALLOWED_ORIGINS = []
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://\w+\.showers-hostel\.com$", # example should be changed to match my domain name 
+    r"^https://[a-zA-Z0-9-]+\.showers-hostel\.com$"  # Allows subdomains with hyphens (e.g., school-name.dsms.com)
+]
+
+CORS_URLS_REGEX = r"^/api/.*$" # Limiting CORS to just my API and not letting it access all the URLs.
 
 TEMPLATES = [
     {
@@ -76,12 +87,16 @@ TEMPLATES = [
 WSGI_APPLICATION = 'FrontUser.wsgi.application'
 
 REST_FRAMEWORK = {
+    """
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+    """
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
-    ]
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
+    'PAGE_SIZE': 100
 }
 
 

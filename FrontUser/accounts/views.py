@@ -32,6 +32,7 @@ def login(request):
     
 
 @api_view(['GET','PUT','PATCH']) #PATCH is for testing purposes 
+@permission_classes([AllowAny])
 def SchoolProfileManager(request):
     try:
         school_profile = SchoolProfile.objects.get(user_id=request.user.pk)
